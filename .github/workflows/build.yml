@@ -67,5 +67,5 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist\DecimalConverter.exe
-            installer_output\DecimalConverterSetup.exe
+            dist/DecimalConverter.exe
+            installer_output/DecimalConverterSetup.exe
