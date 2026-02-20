@@ -21,6 +21,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump patch version
+        id: ver
         shell: pwsh
         run: |
           $version = (Get-Content version.txt).Trim()
@@ -28,7 +29,7 @@ jobs:
           $parts[2] = [int]$parts[2] + 1
           $newVersion = $parts -join '.'
           Set-Content version.txt $newVersion
-          "VERSION=$newVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "version=$newVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "Version bumped: $version -> $newVersion"
 
       - name: Set up Python
@@ -47,7 +48,7 @@ jobs:
 
       - name: Build Windows installer
         shell: pwsh
-        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion="${{ env.VERSION }}" installer.iss'
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion="${{ steps.ver.outputs.version }}" installer.iss'
 
       - name: Commit bumped version back to main
         shell: pwsh
@@ -55,17 +56,16 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add version.txt
-          git commit -m "chore: bump version to ${{ env.VERSION }}"
+          git commit -m "chore: bump version to ${{ steps.ver.outputs.version }}"
           git push
 
-      - name: Upload EXE artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: DecimalConvertor-${{ env.VERSION }}-exe
-          path: dist\DecimalConvertor.exe
-
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DecimalConvertorSetup-${{ env.VERSION }}
-          path: installer_output\DecimalConvertorSetup.exe
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            dist\DecimalConvertor.exe
+            installer_output\DecimalConvertorSetup.exe
