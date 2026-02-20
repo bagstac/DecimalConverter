@@ -1,29 +1,41 @@
 """
 Decimal Equivalent Calculator
 Tabs:
-  1. Fraction → Decimal  – converts fractional inch measurements to decimals
-  2. Inches → Millimeters – converts a decimal inch value to millimeters
+  1. Fraction → Decimal      — converts fractional inch measurements to decimal inches
+  2. Inches → Millimeters    — converts decimal/fractional inches to millimeters
+  3. Millimeters → Inches    — converts millimeters to decimal inches and nearest fraction
 
-Menu bar → Settings → "Minimize to system tray" controls tray behaviour.
-The setting is persisted in %APPDATA%\DecimalConverter\settings.json.
+Settings (Settings menu):
+  • Minimize to system tray — send to tray on minimise instead of taskbar
+  • Minimal UI              — hide reference tables for a compact window
+
+Settings are persisted in %APPDATA%\\DecimalConverter\\settings.json.
 """
+
+from __future__ import annotations
 
 import json
 import os
 import sys
 import threading
 import tkinter as tk
+from fractions import Fraction
 from pathlib import Path
 from tkinter import ttk
-from fractions import Fraction
+from typing import Any
 
 import pystray
 from PIL import Image, ImageDraw, ImageTk
 
 
-# ── Resource path (works both in dev and PyInstaller --onefile) ───────────────
+# ── Resource utilities ────────────────────────────────────────────────────────
 
 def _resource_path(filename: str) -> Path:
+    """Return the absolute path to a bundled resource.
+
+    Works when running from source and when packaged with PyInstaller
+    --onefile (files are extracted to sys._MEIPASS at runtime).
+    """
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
     return base / filename
 
@@ -31,36 +43,40 @@ def _resource_path(filename: str) -> Path:
 # ── Version ───────────────────────────────────────────────────────────────────
 
 try:
-    APP_VERSION = _resource_path("version.txt").read_text().strip()
+    APP_VERSION: str = _resource_path("version.txt").read_text().strip()
 except OSError:
     APP_VERSION = "dev"
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-INCHES_PER_MM = 1 / 25.4  # exact: 1 inch = 25.4 mm
+MM_PER_INCH: float = 25.4  # exact, defined by international agreement
 
-SETTINGS_FILE = (
+SETTINGS_FILE: Path = (
     Path(os.environ.get("APPDATA", Path.home())) / "DecimalConverter" / "settings.json"
 )
 
-# Common fractional inch sizes up to 64ths, in order
-COMMON_FRACTIONS = sorted(set(
+# All unique reduced fractions with denominators 2, 4, 8, 16, 32, 64 — sorted
+COMMON_FRACTIONS: list[Fraction] = sorted(set(
     Fraction(n, d)
     for d in [2, 4, 8, 16, 32, 64]
     for n in range(1, d)
-    if Fraction(n, d).denominator == d  # only unreduced fractions
+    if Fraction(n, d).denominator == d
 ))
 
+_ACCENT_COLOR = "#1a5fb4"
+_RESULT_FONT = ("Courier", 14, "bold")
+_TAB_PAD: dict[str, int] = {"padx": 10, "pady": 6}
 
-# ── Tray icon image ───────────────────────────────────────────────────────────
+
+# ── Tray icon ─────────────────────────────────────────────────────────────────
 
 def _make_tray_image() -> Image.Image:
-    """Draw a simple ruler icon for the system tray (64×64 px)."""
+    """Draw a small ruler icon for the system tray (64 × 64 px)."""
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    draw.rounded_rectangle([4, 20, 60, 44], radius=4, fill="#1a5fb4")
+    draw.rounded_rectangle([4, 20, 60, 44], radius=4, fill=_ACCENT_COLOR)
     for i, x in enumerate(range(8, 58, 7)):
         height = 10 if i % 2 == 0 else 6
         draw.line([(x, 20), (x, 20 + height)], fill="white", width=2)
@@ -70,13 +86,14 @@ def _make_tray_image() -> Image.Image:
 # ── Application ───────────────────────────────────────────────────────────────
 
 class DecimalConverterApp(tk.Tk):
-    def __init__(self):
+    """Main application window for the Decimal Equivalent Calculator."""
+
+    def __init__(self) -> None:
         super().__init__()
         self.title(f"Decimal Equivalent Calculator v{APP_VERSION}")
         self.resizable(False, False)
         self._tray_icon: pystray.Icon | None = None
 
-        # Settings state
         self.minimize_to_tray = tk.BooleanVar(value=self._load_setting("minimize_to_tray", True))
         self.minimal_ui = tk.BooleanVar(value=self._load_setting("minimal_ui", False))
         self._ref_frames: list[ttk.LabelFrame] = []
@@ -89,6 +106,8 @@ class DecimalConverterApp(tk.Tk):
         self.bind("<Unmap>", self._on_unmap)
         self.protocol("WM_DELETE_WINDOW", self._quit_app)
 
+    # ── Icon ──────────────────────────────────────────────────────────────────
+
     def _load_app_icon(self) -> None:
         try:
             img = Image.open(_resource_path("DecimalConverter.png"))
@@ -97,9 +116,9 @@ class DecimalConverterApp(tk.Tk):
         except OSError:
             pass
 
-    # ── Settings persistence ─────────────────────────────────────────────────
+    # ── Settings persistence ──────────────────────────────────────────────────
 
-    def _load_setting(self, key: str, default):
+    def _load_setting(self, key: str, default: Any) -> Any:
         try:
             data = json.loads(SETTINGS_FILE.read_text())
             return data.get(key, default)
@@ -116,9 +135,9 @@ class DecimalConverterApp(tk.Tk):
                 }, indent=2)
             )
         except OSError:
-            pass  # silently ignore if the path isn't writable
+            pass
 
-    # ── Menu bar ─────────────────────────────────────────────────────────────
+    # ── Menu bar ──────────────────────────────────────────────────────────────
 
     def _build_menu(self) -> None:
         menubar = tk.Menu(self)
@@ -152,7 +171,7 @@ class DecimalConverterApp(tk.Tk):
             img = Image.open(_resource_path("DecimalConverter.png"))
             photo = ImageTk.PhotoImage(img.resize((80, 80), Image.LANCZOS))
             lbl = ttk.Label(top, image=photo)
-            lbl.image = photo  # keep reference
+            lbl.image = photo  # keep reference alive
             lbl.pack(pady=(16, 8))
         except OSError:
             pass
@@ -178,7 +197,7 @@ class DecimalConverterApp(tk.Tk):
         self.update_idletasks()
         self.geometry("")
 
-    # ── System tray ──────────────────────────────────────────────────────────
+    # ── System tray ───────────────────────────────────────────────────────────
 
     def _on_unmap(self, event: tk.Event) -> None:
         if event.widget is self and self.minimize_to_tray.get():
@@ -193,25 +212,25 @@ class DecimalConverterApp(tk.Tk):
             pystray.MenuItem("Quit", self._quit_app),
         )
         self._tray_icon = pystray.Icon(
-            "DecimalConverter", _make_tray_image(), "Decimal Convertor", menu
+            "DecimalConverter", _make_tray_image(), "Decimal Converter", menu
         )
         threading.Thread(target=self._tray_icon.run, daemon=True).start()
 
-    def _restore(self, icon: pystray.Icon | None = None, item=None) -> None:
+    def _restore(self, icon: pystray.Icon | None = None, item: Any = None) -> None:
         if self._tray_icon:
             self._tray_icon.stop()
             self._tray_icon = None
         self.after(0, self.deiconify)
 
-    def _quit_app(self, icon: pystray.Icon | None = None, item=None) -> None:
+    def _quit_app(self, icon: pystray.Icon | None = None, item: Any = None) -> None:
         if self._tray_icon:
             self._tray_icon.stop()
             self._tray_icon = None
         self.after(0, self.destroy)
 
-    # ── UI ───────────────────────────────────────────────────────────────────
+    # ── UI ────────────────────────────────────────────────────────────────────
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         notebook = ttk.Notebook(self)
         notebook.grid(row=0, column=0, padx=10, pady=10)
 
@@ -227,13 +246,11 @@ class DecimalConverterApp(tk.Tk):
         notebook.add(tab3, text="Millimeters → Inches")
         self._build_mm_inches_tab(tab3)
 
-    # ── Tab 1: Fraction → Decimal ────────────────────────────────────────────
+    # ── Tab 1: Fraction → Decimal ─────────────────────────────────────────────
 
-    def _build_fraction_tab(self, parent):
-        pad = {"padx": 10, "pady": 6}
-
+    def _build_fraction_tab(self, parent: ttk.Frame) -> None:
         calc_frame = ttk.LabelFrame(parent, text="Convert a Fraction")
-        calc_frame.grid(row=0, column=0, sticky="ew", **pad)
+        calc_frame.grid(row=0, column=0, sticky="ew", **_TAB_PAD)
 
         ttk.Label(calc_frame, text="Fraction:").grid(
             row=0, column=0, sticky="e", padx=(8, 4), pady=4
@@ -257,8 +274,8 @@ class DecimalConverterApp(tk.Tk):
         ttk.Label(
             calc_frame,
             textvariable=self.frac_result_var,
-            font=("Courier", 14, "bold"),
-            foreground="#1a5fb4",
+            font=_RESULT_FONT,
+            foreground=_ACCENT_COLOR,
             width=12,
         ).grid(row=2, column=1, sticky="w", padx=(0, 8), pady=4)
 
@@ -268,7 +285,7 @@ class DecimalConverterApp(tk.Tk):
         ).grid(row=3, column=0, columnspan=2, pady=(0, 6))
 
         ref_frame = ttk.LabelFrame(parent, text="Common Fractions Reference")
-        ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        ref_frame.grid(row=1, column=0, sticky="nsew", **_TAB_PAD)
         self._ref_frames.append(ref_frame)
 
         columns = ("fraction", "decimal")
@@ -289,17 +306,16 @@ class DecimalConverterApp(tk.Tk):
             tree.insert("", "end", values=(str(frac), f"{float(frac):.6f}"))
 
         tree.bind("<<TreeviewSelect>>", lambda e: self._on_frac_row_select(tree))
-
         frac_entry.focus_set()
 
-    def _on_frac_row_select(self, tree):
+    def _on_frac_row_select(self, tree: ttk.Treeview) -> None:
         selection = tree.selection()
         if not selection:
             return
         self.fraction_var.set(tree.item(selection[0], "values")[0])
         self._convert_fraction()
 
-    def _convert_fraction(self, _event=None):
+    def _convert_fraction(self, _event: tk.Event | None = None) -> None:
         self.frac_error_var.set("")
         try:
             frac = Fraction(self.fraction_var.get().strip())
@@ -315,13 +331,11 @@ class DecimalConverterApp(tk.Tk):
 
         self.frac_result_var.set(f"{float(frac):.6f}")
 
-    # ── Tab 2: Inches → Millimeters ──────────────────────────────────────────
+    # ── Tab 2: Inches → Millimeters ───────────────────────────────────────────
 
-    def _build_inches_mm_tab(self, parent):
-        pad = {"padx": 10, "pady": 6}
-
+    def _build_inches_mm_tab(self, parent: ttk.Frame) -> None:
         calc_frame = ttk.LabelFrame(parent, text="Convert Inches to Millimeters")
-        calc_frame.grid(row=0, column=0, sticky="ew", **pad)
+        calc_frame.grid(row=0, column=0, sticky="ew", **_TAB_PAD)
 
         ttk.Label(calc_frame, text="Inches:").grid(
             row=0, column=0, sticky="e", padx=(8, 4), pady=4
@@ -330,7 +344,7 @@ class DecimalConverterApp(tk.Tk):
         inches_entry = ttk.Entry(calc_frame, textvariable=self.inches_var, width=12)
         inches_entry.grid(row=0, column=1, sticky="w", padx=(0, 4), pady=4)
         inches_entry.bind("<Return>", self._convert_inches)
-        ttk.Label(calc_frame, text='e.g.  3/8  or  1 3/8  or  0.375', foreground="gray").grid(
+        ttk.Label(calc_frame, text="e.g.  3/8  or  1 3/8  or  0.375", foreground="gray").grid(
             row=0, column=2, sticky="w", padx=(2, 8)
         )
 
@@ -345,8 +359,8 @@ class DecimalConverterApp(tk.Tk):
         ttk.Label(
             calc_frame,
             textvariable=self.mm_result_var,
-            font=("Courier", 14, "bold"),
-            foreground="#1a5fb4",
+            font=_RESULT_FONT,
+            foreground=_ACCENT_COLOR,
             width=14,
         ).grid(row=2, column=1, sticky="w", padx=(0, 8), pady=4)
 
@@ -356,7 +370,7 @@ class DecimalConverterApp(tk.Tk):
         ).grid(row=3, column=0, columnspan=2, pady=(0, 6))
 
         ref_frame = ttk.LabelFrame(parent, text="Common Conversions Reference")
-        ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        ref_frame.grid(row=1, column=0, sticky="nsew", **_TAB_PAD)
         self._ref_frames.append(ref_frame)
 
         columns = ("fraction", "inches", "mm")
@@ -377,35 +391,32 @@ class DecimalConverterApp(tk.Tk):
 
         for frac in COMMON_FRACTIONS:
             inch_val = float(frac)
-            mm_val = inch_val * 25.4
             tree.insert(
                 "", "end",
-                values=(str(frac), f"{inch_val:.6f}", f"{mm_val:.4f}")
+                values=(str(frac), f"{inch_val:.6f}", f"{inch_val * MM_PER_INCH:.4f}")
             )
 
         tree.bind("<<TreeviewSelect>>", lambda e: self._on_inches_row_select(tree))
-
         inches_entry.focus_set()
 
-    def _on_inches_row_select(self, tree):
+    def _on_inches_row_select(self, tree: ttk.Treeview) -> None:
         selection = tree.selection()
         if not selection:
             return
-        inch_str = tree.item(selection[0], "values")[1]  # decimal inches column
-        self.inches_var.set(inch_str)
+        self.inches_var.set(tree.item(selection[0], "values")[1])
         self._convert_inches()
 
-    def _convert_inches(self, _event=None):
+    def _convert_inches(self, _event: tk.Event | None = None) -> None:
         self.inches_error_var.set("")
         raw = self.inches_var.get().strip()
 
         try:
             parts = raw.split()
             if len(parts) == 2:
-                # Mixed number: whole part + fraction, e.g. "1 3/8"
+                # Mixed number e.g. "1 3/8"
                 inches = float(int(parts[0]) + Fraction(parts[1]))
             elif len(parts) == 1:
-                # Plain decimal or fraction, e.g. "0.375" or "3/8"
+                # Plain decimal or fraction e.g. "0.375" or "3/8"
                 inches = float(Fraction(raw))
             else:
                 raise ValueError
@@ -419,15 +430,13 @@ class DecimalConverterApp(tk.Tk):
             self.mm_result_var.set("—")
             return
 
-        self.mm_result_var.set(f"{inches * 25.4:.4f}")
+        self.mm_result_var.set(f"{inches * MM_PER_INCH:.4f}")
 
-    # ── Tab 3: Millimeters → Inches ──────────────────────────────────────────
+    # ── Tab 3: Millimeters → Inches ───────────────────────────────────────────
 
-    def _build_mm_inches_tab(self, parent):
-        pad = {"padx": 10, "pady": 6}
-
+    def _build_mm_inches_tab(self, parent: ttk.Frame) -> None:
         calc_frame = ttk.LabelFrame(parent, text="Convert Millimeters to Inches")
-        calc_frame.grid(row=0, column=0, sticky="ew", **pad)
+        calc_frame.grid(row=0, column=0, sticky="ew", **_TAB_PAD)
 
         ttk.Label(calc_frame, text="Millimeters:").grid(
             row=0, column=0, sticky="e", padx=(8, 4), pady=4
@@ -451,8 +460,8 @@ class DecimalConverterApp(tk.Tk):
         ttk.Label(
             calc_frame,
             textvariable=self.mm_to_in_result_var,
-            font=("Courier", 14, "bold"),
-            foreground="#1a5fb4",
+            font=_RESULT_FONT,
+            foreground=_ACCENT_COLOR,
             width=14,
         ).grid(row=2, column=1, sticky="w", padx=(0, 8), pady=4)
 
@@ -463,8 +472,8 @@ class DecimalConverterApp(tk.Tk):
         ttk.Label(
             calc_frame,
             textvariable=self.mm_to_in_frac_var,
-            font=("Courier", 14, "bold"),
-            foreground="#1a5fb4",
+            font=_RESULT_FONT,
+            foreground=_ACCENT_COLOR,
             width=14,
         ).grid(row=3, column=1, sticky="w", padx=(0, 8), pady=4)
 
@@ -474,7 +483,7 @@ class DecimalConverterApp(tk.Tk):
         ).grid(row=4, column=0, columnspan=2, pady=(0, 6))
 
         ref_frame = ttk.LabelFrame(parent, text="Common Conversions Reference")
-        ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        ref_frame.grid(row=1, column=0, sticky="nsew", **_TAB_PAD)
         self._ref_frames.append(ref_frame)
 
         columns = ("mm", "inches", "fraction")
@@ -495,24 +504,22 @@ class DecimalConverterApp(tk.Tk):
 
         for frac in COMMON_FRACTIONS:
             inch_val = float(frac)
-            mm_val = inch_val * 25.4
             tree.insert(
                 "", "end",
-                values=(f"{mm_val:.4f}", f"{inch_val:.6f}", str(frac))
+                values=(f"{inch_val * MM_PER_INCH:.4f}", f"{inch_val:.6f}", str(frac))
             )
 
         tree.bind("<<TreeviewSelect>>", lambda e: self._on_mm_row_select(tree))
-
         mm_entry.focus_set()
 
-    def _on_mm_row_select(self, tree):
+    def _on_mm_row_select(self, tree: ttk.Treeview) -> None:
         selection = tree.selection()
         if not selection:
             return
-        self.mm_input_var.set(tree.item(selection[0], "values")[0])  # mm column
+        self.mm_input_var.set(tree.item(selection[0], "values")[0])
         self._convert_mm()
 
-    def _convert_mm(self, _event=None):
+    def _convert_mm(self, _event: tk.Event | None = None) -> None:
         self.mm_error_var.set("")
         try:
             mm = float(self.mm_input_var.get().strip())
@@ -528,7 +535,7 @@ class DecimalConverterApp(tk.Tk):
             self.mm_to_in_frac_var.set("—")
             return
 
-        inches = mm / 25.4
+        inches = mm / MM_PER_INCH
         self.mm_to_in_result_var.set(f"{inches:.6f}")
         nearest = Fraction(inches).limit_denominator(64)
         whole = int(nearest)
@@ -542,6 +549,13 @@ class DecimalConverterApp(tk.Tk):
         self.mm_to_in_frac_var.set(frac_str)
 
 
-if __name__ == "__main__":
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+def main() -> None:
+    """Launch the Decimal Equivalent Calculator."""
     app = DecimalConverterApp()
     app.mainloop()
+
+
+if __name__ == "__main__":
+    main()
