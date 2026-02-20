@@ -1,0 +1,45 @@
+name: Build Windows EXE
+
+# Runs whenever a pull request is merged to main (or any direct push to main)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pyinstaller pystray Pillow
+
+      - name: Build standalone EXE
+        run: pyinstaller --onefile --windowed --name "DecimalConvertor" decimal_convertor.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DecimalConvertor-exe
+          path: dist\DecimalConvertor.exe
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DecimalConvertorSetup
+          path: installer_output\DecimalConvertorSetup.exe
