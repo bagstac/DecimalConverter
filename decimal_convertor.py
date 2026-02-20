@@ -20,6 +20,14 @@ import pystray
 from PIL import Image, ImageDraw
 
 
+# ── Version ───────────────────────────────────────────────────────────────────
+
+try:
+    APP_VERSION = (Path(__file__).parent / "version.txt").read_text().strip()
+except OSError:
+    APP_VERSION = "dev"
+
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 INCHES_PER_MM = 1 / 25.4  # exact: 1 inch = 25.4 mm
@@ -56,7 +64,7 @@ def _make_tray_image() -> Image.Image:
 class DecimalConvertorApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Decimal Equivalent Calculator")
+        self.title(f"Decimal Equivalent Calculator v{APP_VERSION}")
         self.resizable(False, False)
         self._tray_icon: pystray.Icon | None = None
 
@@ -118,7 +126,10 @@ class DecimalConvertorApp(tk.Tk):
         self.config(menu=menubar)
 
     def _show_about(self) -> None:
-        messagebox.showinfo("About", "Simple tool by CodingAttempts")
+        messagebox.showinfo(
+            "About",
+            f"Decimal Equivalent Calculator\nVersion {APP_VERSION}\n\nSimple tool by CodingAttempts",
+        )
 
     def _on_minimal_ui_toggle(self) -> None:
         self._apply_minimal_ui()
