@@ -10,20 +10,28 @@ The setting is persisted in %APPDATA%\DecimalConverter\settings.json.
 
 import json
 import os
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import ttk
 from fractions import Fraction
 
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
+
+
+# ── Resource path (works both in dev and PyInstaller --onefile) ───────────────
+
+def _resource_path(filename: str) -> Path:
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+    return base / filename
 
 
 # ── Version ───────────────────────────────────────────────────────────────────
 
 try:
-    APP_VERSION = (Path(__file__).parent / "version.txt").read_text().strip()
+    APP_VERSION = _resource_path("version.txt").read_text().strip()
 except OSError:
     APP_VERSION = "dev"
 
@@ -73,12 +81,21 @@ class DecimalConverterApp(tk.Tk):
         self.minimal_ui = tk.BooleanVar(value=self._load_setting("minimal_ui", False))
         self._ref_frames: list[ttk.LabelFrame] = []
 
+        self._load_app_icon()
         self._build_menu()
         self._build_ui()
         self._apply_minimal_ui()
 
         self.bind("<Unmap>", self._on_unmap)
         self.protocol("WM_DELETE_WINDOW", self._quit_app)
+
+    def _load_app_icon(self) -> None:
+        try:
+            img = Image.open(_resource_path("DecimalConverter.png"))
+            self._app_icon = ImageTk.PhotoImage(img.resize((32, 32), Image.LANCZOS))
+            self.iconphoto(True, self._app_icon)
+        except OSError:
+            pass
 
     # ── Settings persistence ─────────────────────────────────────────────────
 
@@ -126,10 +143,26 @@ class DecimalConverterApp(tk.Tk):
         self.config(menu=menubar)
 
     def _show_about(self) -> None:
-        messagebox.showinfo(
-            "About",
-            f"Decimal Equivalent Calculator\nVersion {APP_VERSION}\n\nSimple tool by CodingAttempts",
-        )
+        top = tk.Toplevel(self)
+        top.title("About")
+        top.resizable(False, False)
+        top.grab_set()
+
+        try:
+            img = Image.open(_resource_path("DecimalConverter.png"))
+            photo = ImageTk.PhotoImage(img.resize((80, 80), Image.LANCZOS))
+            lbl = ttk.Label(top, image=photo)
+            lbl.image = photo  # keep reference
+            lbl.pack(pady=(16, 8))
+        except OSError:
+            pass
+
+        ttk.Label(top, text="Decimal Equivalent Calculator", font=("", 11, "bold")).pack()
+        ttk.Label(top, text=f"Version {APP_VERSION}").pack(pady=4)
+        ttk.Label(top, text="Simple tool by CodingAttempts", foreground="gray").pack()
+        ttk.Button(top, text="OK", command=top.destroy).pack(pady=(12, 16))
+
+        top.wait_window()
 
     def _on_minimal_ui_toggle(self) -> None:
         self._apply_minimal_ui()

@@ -31,7 +31,7 @@ if exist installer_output   rmdir /s /q installer_output
 :: ── Step 4: Build standalone executable ──────────────────────────────────────
 echo.
 echo Building executable...
-pyinstaller --onefile --windowed --name "DecimalConverter" decimal_convertor.py
+pyinstaller --onefile --windowed --name "DecimalConverter" --icon "DecimalConverter.png" --add-data "DecimalConverter.png;." --add-data "version.txt;." decimal_convertor.py
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed.
     pause
