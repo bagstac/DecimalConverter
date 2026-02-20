@@ -37,7 +37,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo Executable built: dist\DecimalConvertor.exe
+echo Executable built: dist\DecimalConverter.exe
 
 :: ── Step 5: Locate Inno Setup compiler (ISCC.exe) ────────────────────────────
 echo.
@@ -88,7 +88,7 @@ if errorlevel 1 (
 echo.
 echo ============================================================
 echo  All done!
-echo  Installer : installer_output\DecimalConvertorSetup.exe
+echo  Installer : installer_output\DecimalConverterSetup.exe
 echo ============================================================
 echo.
 pause

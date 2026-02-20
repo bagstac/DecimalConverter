@@ -5,7 +5,7 @@ Tabs:
   2. Inches → Millimeters – converts a decimal inch value to millimeters
 
 Menu bar → Settings → "Minimize to system tray" controls tray behaviour.
-The setting is persisted in %APPDATA%\DecimalConvertor\settings.json.
+The setting is persisted in %APPDATA%\DecimalConverter\settings.json.
 """
 
 import json
@@ -41,7 +41,7 @@ except OSError:
 INCHES_PER_MM = 1 / 25.4  # exact: 1 inch = 25.4 mm
 
 SETTINGS_FILE = (
-    Path(os.environ.get("APPDATA", Path.home())) / "DecimalConvertor" / "settings.json"
+    Path(os.environ.get("APPDATA", Path.home())) / "DecimalConverter" / "settings.json"
 )
 
 # Common fractional inch sizes up to 64ths, in order
@@ -69,7 +69,7 @@ def _make_tray_image() -> Image.Image:
 
 # ── Application ───────────────────────────────────────────────────────────────
 
-class DecimalConvertorApp(tk.Tk):
+class DecimalConverterApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"Decimal Equivalent Calculator v{APP_VERSION}")
@@ -193,7 +193,7 @@ class DecimalConvertorApp(tk.Tk):
             pystray.MenuItem("Quit", self._quit_app),
         )
         self._tray_icon = pystray.Icon(
-            "DecimalConvertor", _make_tray_image(), "Decimal Convertor", menu
+            "DecimalConverter", _make_tray_image(), "Decimal Convertor", menu
         )
         threading.Thread(target=self._tray_icon.run, daemon=True).start()
 
@@ -543,5 +543,5 @@ class DecimalConvertorApp(tk.Tk):
 
 
 if __name__ == "__main__":
-    app = DecimalConvertorApp()
+    app = DecimalConverterApp()
     app.mainloop()
