@@ -1,13 +1,13 @@
 ; Inno Setup script for Decimal Convertor
 ; Requires Inno Setup 6+ (https://jrsoftware.org/isinfo.php)
-; Run build.bat first to produce dist\DecimalConvertor.exe
+; Run build.bat first to produce dist\DecimalConverter.exe
 
 #define AppName      "Decimal Convertor"
 #ifndef AppVersion
   #define AppVersion "dev"
 #endif
 #define AppPublisher "Brian"
-#define AppExeName   "DecimalConvertor.exe"
+#define AppExeName   "DecimalConverter.exe"
 
 [Setup]
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
@@ -22,7 +22,7 @@ DefaultGroupName={#AppName}
 
 ; Installer output
 OutputDir=installer_output
-OutputBaseFilename=DecimalConvertorSetup
+OutputBaseFilename=DecimalConverterSetup
 
 ; Compression
 Compression=lzma2/ultra64
