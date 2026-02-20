@@ -62,9 +62,12 @@ class DecimalConvertorApp(tk.Tk):
 
         # Settings state
         self.minimize_to_tray = tk.BooleanVar(value=self._load_setting("minimize_to_tray", True))
+        self.minimal_ui = tk.BooleanVar(value=self._load_setting("minimal_ui", False))
+        self._ref_frames: list[ttk.LabelFrame] = []
 
         self._build_menu()
         self._build_ui()
+        self._apply_minimal_ui()
 
         self.bind("<Unmap>", self._on_unmap)
         self.protocol("WM_DELETE_WINDOW", self._quit_app)
@@ -82,7 +85,10 @@ class DecimalConvertorApp(tk.Tk):
         try:
             SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
             SETTINGS_FILE.write_text(
-                json.dumps({"minimize_to_tray": self.minimize_to_tray.get()}, indent=2)
+                json.dumps({
+                    "minimize_to_tray": self.minimize_to_tray.get(),
+                    "minimal_ui": self.minimal_ui.get(),
+                }, indent=2)
             )
         except OSError:
             pass  # silently ignore if the path isn't writable
@@ -98,6 +104,11 @@ class DecimalConvertorApp(tk.Tk):
             variable=self.minimize_to_tray,
             command=self._save_settings,
         )
+        settings_menu.add_checkbutton(
+            label="Minimal UI",
+            variable=self.minimal_ui,
+            command=self._on_minimal_ui_toggle,
+        )
         menubar.add_cascade(label="Settings", menu=settings_menu)
 
         help_menu = tk.Menu(menubar, tearoff=False)
@@ -108,6 +119,20 @@ class DecimalConvertorApp(tk.Tk):
 
     def _show_about(self) -> None:
         messagebox.showinfo("About", "Simple tool by CodingAttempts")
+
+    def _on_minimal_ui_toggle(self) -> None:
+        self._apply_minimal_ui()
+        self._save_settings()
+
+    def _apply_minimal_ui(self) -> None:
+        if self.minimal_ui.get():
+            for frame in self._ref_frames:
+                frame.grid_remove()
+        else:
+            for frame in self._ref_frames:
+                frame.grid()
+        self.update_idletasks()
+        self.geometry("")
 
     # ── System tray ──────────────────────────────────────────────────────────
 
@@ -200,6 +225,7 @@ class DecimalConvertorApp(tk.Tk):
 
         ref_frame = ttk.LabelFrame(parent, text="Common Fractions Reference")
         ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        self._ref_frames.append(ref_frame)
 
         columns = ("fraction", "decimal")
         tree = ttk.Treeview(
@@ -287,6 +313,7 @@ class DecimalConvertorApp(tk.Tk):
 
         ref_frame = ttk.LabelFrame(parent, text="Common Conversions Reference")
         ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        self._ref_frames.append(ref_frame)
 
         columns = ("fraction", "inches", "mm")
         tree = ttk.Treeview(
@@ -404,6 +431,7 @@ class DecimalConvertorApp(tk.Tk):
 
         ref_frame = ttk.LabelFrame(parent, text="Common Conversions Reference")
         ref_frame.grid(row=1, column=0, sticky="nsew", **pad)
+        self._ref_frames.append(ref_frame)
 
         columns = ("mm", "inches", "fraction")
         tree = ttk.Treeview(
