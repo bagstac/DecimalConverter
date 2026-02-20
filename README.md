@@ -6,7 +6,7 @@ A small Windows desktop utility for converting between fractional inches, decima
 
 ## Download
 
-👉 **[Download the latest installer](https://github.com/bagstac/DecimalConverter/releases/latest)** — grab `DecimalConvertorSetup.exe` from the Assets section.
+👉 **[Download the latest installer](https://github.com/bagstac/DecimalConverter/releases/latest)** — grab `DecimalConverterSetup.exe` from the Assets section.
 
 ## Features
 
@@ -32,4 +32,4 @@ Requires [Inno Setup 6](https://jrsoftware.org/isinfo.php) to be installed.
 build.bat
 ```
 
-Produces `installer_output\DecimalConvertorSetup.exe`.
+Produces `installer_output\DecimalConverterSetup.exe`.

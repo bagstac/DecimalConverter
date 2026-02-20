@@ -41,7 +41,7 @@ jobs:
         run: pip install pyinstaller pystray Pillow
 
       - name: Build standalone EXE
-        run: pyinstaller --onefile --windowed --name "DecimalConvertor" decimal_convertor.py
+        run: pyinstaller --onefile --windowed --name "DecimalConverter" decimal_convertor.py
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -67,5 +67,5 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist\DecimalConvertor.exe
-            installer_output\DecimalConvertorSetup.exe
+            dist\DecimalConverter.exe
+            installer_output\DecimalConverterSetup.exe

@@ -31,13 +31,13 @@ if exist installer_output   rmdir /s /q installer_output
 :: ── Step 4: Build standalone executable ──────────────────────────────────────
 echo.
 echo Building executable...
-pyinstaller --onefile --windowed --name "DecimalConvertor" decimal_convertor.py
+pyinstaller --onefile --windowed --name "DecimalConverter" decimal_convertor.py
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed.
     pause
     exit /b 1
 )
-echo Executable built: dist\DecimalConvertor.exe
+echo Executable built: dist\DecimalConverter.exe
 
 :: ── Step 5: Locate Inno Setup compiler (ISCC.exe) ────────────────────────────
 echo.
@@ -88,7 +88,7 @@ if errorlevel 1 (
 echo.
 echo ============================================================
 echo  All done!
-echo  Installer : installer_output\DecimalConvertorSetup.exe
+echo  Installer : installer_output\DecimalConverterSetup.exe
 echo ============================================================
 echo.
 pause
