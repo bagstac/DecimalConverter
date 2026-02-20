@@ -1,10 +1,14 @@
 name: Build Windows EXE
 
-# Runs whenever a pull request is merged to main (or any direct push to main)
+# Runs whenever a pull request is merged to main (or any direct push to main).
+# Pushes made by this workflow using GITHUB_TOKEN do NOT re-trigger it.
 on:
   push:
     branches:
       - main
+
+permissions:
+  contents: write   # needed to commit the bumped version.txt back to main
 
 jobs:
   build:
@@ -13,6 +17,19 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version
+        shell: pwsh
+        run: |
+          $version = (Get-Content version.txt).Trim()
+          $parts   = $version.Split('.')
+          $parts[2] = [int]$parts[2] + 1
+          $newVersion = $parts -join '.'
+          Set-Content version.txt $newVersion
+          "VERSION=$newVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Version bumped: $version -> $newVersion"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,16 +47,25 @@ jobs:
 
       - name: Build Windows installer
         shell: pwsh
-        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion="${{ env.VERSION }}" installer.iss'
+
+      - name: Commit bumped version back to main
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt
+          git commit -m "chore: bump version to ${{ env.VERSION }}"
+          git push
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DecimalConvertor-exe
+          name: DecimalConvertor-${{ env.VERSION }}-exe
           path: dist\DecimalConvertor.exe
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DecimalConvertorSetup
+          name: DecimalConvertorSetup-${{ env.VERSION }}
           path: installer_output\DecimalConvertorSetup.exe

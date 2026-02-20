@@ -3,7 +3,9 @@
 ; Run build.bat first to produce dist\DecimalConvertor.exe
 
 #define AppName      "Decimal Convertor"
-#define AppVersion   "1.0"
+#ifndef AppVersion
+  #define AppVersion "dev"
+#endif
 #define AppPublisher "Brian"
 #define AppExeName   "DecimalConvertor.exe"
 
