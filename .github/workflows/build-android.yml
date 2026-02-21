@@ -1,0 +1,76 @@
+name: Build Android APK
+
+# Triggers:
+#   • Manually via the "Run workflow" button on GitHub Actions
+#   • Automatically on any push to main that touches files in android/
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "android/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # ── 1. Source ────────────────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── 2. Java (required by the Android SDK build tools) ────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # ── 3. Python ────────────────────────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── 4. Cache the Android SDK / NDK (~2 GB, slow to download) ─────────────
+      #   Cache key changes only when buildozer.spec changes; otherwise reuse.
+      - name: Cache Buildozer global state
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('android/buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      # ── 5. System packages expected by Buildozer / python-for-android ────────
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip \
+            autoconf libtool pkg-config \
+            zlib1g-dev libffi-dev libssl-dev \
+            cmake
+
+      # ── 6. Python build tools ────────────────────────────────────────────────
+      - name: Install Buildozer and Cython
+        run: pip install --upgrade buildozer cython
+
+      # ── 7. Build the APK ─────────────────────────────────────────────────────
+      #   Must run from the android/ directory where buildozer.spec lives.
+      #   -v = verbose output (useful for diagnosing failures in CI).
+      - name: Build debug APK
+        working-directory: android
+        run: buildozer -v android debug
+
+      # ── 8. Upload the APK as a downloadable artifact ─────────────────────────
+      #   Go to the Actions run → Artifacts → download the zip → install on phone.
+      #   Artifacts are kept for 30 days.
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DecimalConverter-Android-debug
+          path: android/bin/*.apk
+          if-no-files-found: error
+          retention-days: 30
