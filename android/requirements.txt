@@ -1,0 +1,3 @@
+# Runtime dependencies for running main.py on a desktop (for local testing)
+# Android packaging uses buildozer.spec — not this file.
+kivy>=2.3.0

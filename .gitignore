@@ -7,6 +7,12 @@ __pycache__/
 build/
 dist/
 *.spec
+!android/buildozer.spec   # keep the Android build config
+
+# Buildozer / python-for-android cache and compiled APKs
+.buildozer/
+android/.buildozer/
+android/bin/
 
 # Inno Setup output
 installer_output/
