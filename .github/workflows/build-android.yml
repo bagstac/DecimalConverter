@@ -51,6 +51,7 @@ jobs:
             git zip unzip \
             autoconf libtool pkg-config \
             zlib1g-dev libffi-dev libssl-dev \
+            liblzma-dev \
             cmake
 
       # ── 6. Python build tools ────────────────────────────────────────────────
