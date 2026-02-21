@@ -2,7 +2,8 @@ name: Build Android APK
 
 # Triggers:
 #   • Manually via the "Run workflow" button on GitHub Actions
-#   • Automatically on any push to main that touches files in android/
+#   • Automatically on any push to main that touches android/ files
+#     OR changes to this workflow file itself
 on:
   workflow_dispatch:
   push:
@@ -10,6 +11,7 @@ on:
       - main
     paths:
       - "android/**"
+      - ".github/workflows/build-android.yml"
 
 jobs:
   build:
