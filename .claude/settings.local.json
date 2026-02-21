@@ -19,7 +19,8 @@
       "Bash(.\":*)",
       "Bash(gh run list:*)",
       "WebFetch(domain:api.github.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

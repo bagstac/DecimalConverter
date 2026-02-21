@@ -7,7 +7,8 @@ __pycache__/
 build/
 dist/
 *.spec
-!android/buildozer.spec   # keep the Android build config
+# Exception: keep the Android build config
+!android/buildozer.spec
 
 # Buildozer / python-for-android cache and compiled APKs
 .buildozer/
