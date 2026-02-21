@@ -44,15 +44,28 @@ jobs:
             buildozer-${{ runner.os }}-
 
       # ── 5. System packages expected by Buildozer / python-for-android ────────
+      #   python-for-android cross-compiles CPython from source. Every Python
+      #   extension module that references a system header needs the matching
+      #   -dev package on the host runner, even though the compile target is
+      #   Android/ARM. Install the full set upfront to avoid one-at-a-time
+      #   failures.
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            git zip unzip \
-            autoconf libtool pkg-config \
-            zlib1g-dev libffi-dev libssl-dev \
+            git zip unzip patch \
+            build-essential \
+            autoconf automake libtool pkg-config \
+            cmake \
+            zlib1g-dev \
+            libffi-dev \
+            libssl-dev \
             liblzma-dev \
-            cmake
+            libbz2-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            uuid-dev \
+            libncurses5-dev libncursesw5-dev
 
       # ── 6. Python build tools ────────────────────────────────────────────────
       - name: Install Buildozer and Cython
